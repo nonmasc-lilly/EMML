@@ -2,16 +2,21 @@
 Educational Memory Management Language is a language designed to teach the concepts required for low level programming
 
 CURRENT FEATURES:
+
   LABELS:
-    ```
-    LABEL _start
-    ```
-    creates a label named start that can be jumped to
+
+  ```
+  LABEL _start
+  ```
+  creates a label named start that can be jumped to
+  
   EXITS:
-    ```
-    EXIT 0
-    ```
-    exits the program with value 0
+  
+  ```
+  EXIT 0
+  ```
+    
+  exits the program with value 0
 
 Example program:
 ```
