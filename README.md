@@ -35,9 +35,9 @@ X = something that i have found a bug to fix
 - [#] add labels
 - [#] add exit
 - [-] add subroutines (functions without arguments passed through)
-- [~] add jumps (goto in C for example, callsub for subroutines)
+- [#] add jumps (goto in C for example, callsub for subroutines)
 - [-] add conditional jumps
-- [-] add register manipulation
+- [~] add register manipulation
 - [-] add stack variables
 - [-] add operations (add, sub, mul, etc)
 - [-] add scopes
