@@ -6,10 +6,11 @@
 int tok(char *b) {
     int ret, isnum;
     char *si;
-    IFNCMP(b, "")      ret = -1;
-    ELNCMP(b, "EXIT")  ret = t_exit;
-    ELNCMP(b, "LABEL") ret = t_label;
-    ELNCMP(b, "JUMP")  ret = t_jump;
+    IFNCMP(b, "")         ret = -1;
+    ELNCMP(b, "EXIT")     ret = t_exit;
+    ELNCMP(b, "LABEL")    ret = t_label;
+    ELNCMP(b, "JUMP")     ret = t_jump;
+    ELNCMP(b, "REGISTER") ret = t_register;
     else {
         for(isnum=1,si=b; *si && isnum; si++)
             isnum = isdigit(*si);
@@ -70,13 +71,15 @@ struct token **lex(char *s, int *lsz) {
 
 const char *id_type(int id_t) {
     switch(id_t) {
-    case t_root:  return "root";
-    case t_exit:  return "exit";
-    case t_int:   return "int constant";
-    case t_hex:   return "hex constant";
-    case t_iden:  return "identifier";
-    case t_label: return "label";
-    case t_jump:  return "jump";
+    case t_root:     return "root";
+    case t_exit:     return "exit";
+    case t_int:      return "int constant";
+    case t_hex:      return "hex constant";
+    case t_iden:     return "identifier";
+    case t_label:    return "label";
+    case t_jump:     return "jump";
+    case t_register: return "register";
+    default:         return "(null)";
     }
 }
 

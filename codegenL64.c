@@ -2,7 +2,7 @@
 
 char *compile_expression(struct AST *a) {
     char *ret;
-    const char *template;
+    const char *template, *tmp, *tmp2;
     switch(a->id) {
     case t_int:
         template = "  mov rax, %s\n";
@@ -10,11 +10,22 @@ char *compile_expression(struct AST *a) {
         sprintf(ret, template, a->value);
         break;
     case t_iden:
-        template = "  mov rax, [%s]\n";
-        ret = malloc(strlen(template) + strlen(a->value)+1);
-        sprintf(ret, template, a->value);
+        template = "  mov %s, %s\n";
+             if(!strcmp(a->value, "A")) (tmp2 = "al",  tmp = "ch");
+        else if(!strcmp(a->value, "B")) (tmp2 = "al",  tmp = "cl");
+        else if(!strcmp(a->value, "X")) (tmp2 = "ax",  tmp = "cx");
+        else if(!strcmp(a->value, "E")) (tmp2 = "eax", tmp = "ecx");
+        else {
+            template = "  mov rax, [%s]\n";
+            tmp = a->value;
+            ret = malloc(strlen(template) + strlen(tmp)+1);
+            sprintf(ret, template, tmp);
+            break;
+        }
+        ret = malloc(strlen(template) + strlen(tmp) + strlen(tmp2) + 1);
+        sprintf(ret, template, tmp2, tmp);
         break;
-    default: return NULL;
+    default: ret = NULL;
     }
     return ret;
 }
@@ -32,6 +43,7 @@ char *compile_exit(struct AST *a) {
     _expr = compile_expression(a->children[0]);
     ret = malloc(strlen(exit_template) + strlen(_expr)+1);
     sprintf(ret, exit_template, _expr);
+    free(_expr);
     return ret;
 }
 
@@ -59,8 +71,27 @@ char *compile_jump(struct AST *a) {
     return ret;
 }
 
+char *compile_register(struct AST *a) {
+    char *ret, *_expr;
+    const char *register_template, *reg_which;
+    if(a->id != t_register) return NULL;
+    register_template =
+        "  ; register ;\n"
+        "%s"
+        "  mov %s\n";
+    _expr = compile_expression(a->children[1]);
+    if(!strcmp(a->children[0]->value, "A")) reg_which = "byte ch, al";
+    if(!strcmp(a->children[0]->value, "B")) reg_which = "byte cl, al";
+    if(!strcmp(a->children[0]->value, "X")) reg_which = "word cx, ax";
+    if(!strcmp(a->children[0]->value, "E")) reg_which = "dword ecx, eax";
+    ret = malloc(strlen(register_template) + strlen(_expr) + strlen(reg_which)+1);
+    sprintf(ret, register_template, _expr, reg_which);
+    return ret;
+}
+
 char *compile_statement(struct AST *a) {
-    char *statements[] = { compile_label(a), compile_exit(a), compile_jump(a) };
+    char *statements[] = { compile_label(a), compile_exit(a), compile_jump(a),
+        compile_register(a) };
     int i;
     for(i=0; i < sizeof(statements); i++) {
         if(statements[i] != NULL) return statements[i];

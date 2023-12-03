@@ -14,10 +14,13 @@
         TOKEN_DEL(_lex[___]);\
     } } free(_lex)\
 
+#define ASSERT(b, str, where) if(!(b)) (printf(str), printf("\tat: %d\b", (where)),\
+        exit(-1))
+
 typedef enum token_types {
-    t_root, t_exit, t_label,
-    t_iden, t_int,  t_hex,
-    t_jump,
+    t_root, t_exit,     t_label,
+    t_iden, t_int,      t_hex,
+    t_jump, t_register
 } TOKEN_TYPE;
 
 struct token {
