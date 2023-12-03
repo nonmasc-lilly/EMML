@@ -37,8 +37,13 @@ _start:
 ```
 
 TODO:
+\- = what i am planning to work on
+~ = something i am currently working on
+\# = something i have finished working on
+\X = something that i have found a bug to fix
+
 - [-] add subroutines (functions without arguments passed through)
-- [-] add jumps (goto in C for example, callsub for subroutines)
+- [~] add jumps (goto in C for example, callsub for subroutines)
 - [-] add conditional jumps
 - [-] add register manipulation
 - [-] add stack variables
