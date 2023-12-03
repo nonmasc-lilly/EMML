@@ -47,8 +47,20 @@ char *compile_label(struct AST *a) {
     return ret;
 }
 
+char *compile_jump(struct AST *a) {
+    char *ret;
+    const char *jump_template;
+    if(a->id != t_jump) return NULL;
+    jump_template =
+        "  ; jump ;\n"
+        "  jmp %s\n";
+    ret = malloc(strlen(jump_template) + strlen(a->children[0]->value));
+    sprintf(ret, jump_template, a->children[0]->value);
+    return ret;
+}
+
 char *compile_statement(struct AST *a) {
-    char *statements[] = { compile_label(a), compile_exit(a) };
+    char *statements[] = { compile_label(a), compile_exit(a), compile_jump(a) };
     int i;
     for(i=0; i < sizeof(statements); i++) {
         if(statements[i] != NULL) return statements[i];

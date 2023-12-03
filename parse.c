@@ -8,76 +8,93 @@ struct AST *ast_new() {
     return ret;
 }
 
-static struct AST *parse_int(struct token **lexed, int *offset, int lsz) {
+static struct AST *parse_int(struct token **lexed, int offset, int lsz, int *outoff) {
     struct AST *ret;
-    if(*offset > lsz-1) return NULL;
-    if(lexed[*offset]->id != t_int) return NULL;
+    if(offset > lsz-1) return NULL;
+    if(lexed[offset]->id != t_int) return NULL;
     ret = AST_NEW();
     ret->id = t_int;
-    ret->value = STR_DUP(lexed[*offset]->value);
-    (*offset)++;
+    ret->value = STR_DUP(lexed[offset]->value);
+    *outoff += 1;
     return ret;
 }
 
-static struct AST *parse_iden(struct token **lexed, int *offset, int lsz) {
+static struct AST *parse_iden(struct token **lexed, int offset, int lsz, int *outoff) {
     struct AST *ret;
-    if(*offset > lsz-1) return NULL;
-    if(lexed[*offset]->id != t_iden) return NULL;
+    if(offset > lsz-1) return NULL;
+    if(lexed[offset]->id != t_iden) return NULL;
     ret = AST_NEW();
     ret->id = t_iden;
-    ret->value = STR_DUP(lexed[*offset]->value);
-    (*offset)++;
+    ret->value = STR_DUP(lexed[offset]->value);
+    *outoff += 1;
     return ret;
 }
 
-static struct AST *parse_exit(struct token **lexed, int *offset, int lsz) {
+static struct AST *parse_exit(struct token **lexed, int offset, int lsz, int *outoff) {
     struct AST *ret, *_int;
-    if(*offset > lsz-1) return NULL;
-    if(lexed[*offset]->id != t_exit) return NULL;
-    (*offset)++;
-    _int = parse_int(lexed, offset, lsz);
+    if(offset > lsz-1) return NULL;
+    if(lexed[offset]->id != t_exit) return NULL;
+    _int = parse_int(lexed, offset+1, lsz, outoff);
     if(_int == NULL) return NULL;
     ret = AST_NEW();
     ret->id = t_exit;
     ret->value = NULL;
     AST_CHILD_ADD(ret, _int);
+    *outoff += 1;
     return ret;
 }
 
-static struct AST *parse_label(struct token **lexed, int *offset, int lsz) {
+static struct AST *parse_label(struct token **lexed, int offset, int lsz, int *outoff) {
     struct AST *ret, *_iden;
-    if(*offset > lsz-1) return NULL;
-    if(lexed[*offset]->id != t_label) return NULL;
-    (*offset)++;
-    _iden = parse_iden(lexed, offset, lsz);
+    if(offset > lsz-1) return NULL;
+    if(lexed[offset]->id != t_label) return NULL;
+    _iden = parse_iden(lexed, offset+1, lsz, outoff);
     if(_iden == NULL) return NULL;
     ret = AST_NEW();
     ret->id = t_label;
     ret->value = NULL;
     AST_CHILD_ADD(ret, _iden);
+    *outoff += 1;
     return ret;
 }
 
-static struct AST *parse_statement(struct token **lexed, int *offset, int lsz) {
-    struct AST *statements[] = { parse_exit(lexed, offset, lsz),
-        parse_label(lexed, offset, lsz) };
+static struct AST *parse_jump(struct token **lexed, int offset, int lsz, int *outoff) {
+    struct AST *ret, *_iden;
+    if(offset > lsz-1) return NULL;
+    if(lexed[offset]->id != t_jump) return NULL;
+    _iden = parse_iden(lexed, offset+1, lsz, outoff);
+    if(_iden == NULL) return NULL;
+    ret = AST_NEW();
+    ret->id = t_jump;
+    ret->value = NULL;
+    AST_CHILD_ADD(ret, _iden);
+    *outoff += 1;
+    return ret;
+}
+
+#define STATEMENT_LEN 3
+static struct AST *parse_statement(struct token **lexed, int offset, int lsz,
+        int *outoff) {
+    struct AST *statements[STATEMENT_LEN] = { parse_exit(lexed, offset, lsz, outoff),
+        parse_label(lexed, offset, lsz, outoff), parse_jump(lexed, offset, lsz, outoff) };
     int i;
-    for(i=0; i < sizeof(statements); i++)
+    for(i=0; i < STATEMENT_LEN; i++)
         if(statements[i] != NULL) return statements[i];
     return NULL;
 }
 
 struct AST *parse(struct token **lexed, int lsz) {
     struct AST *ret, *tmp;
-    int offset;
+    int offset, inc;
 
     ret = AST_NEW();
     ret->id = t_root;
     ret->value = NULL;
     offset = 0;
     while(1) {
-        if(tmp = parse_statement(lexed, &offset, lsz)) {
-            repast(tmp, 0);
+        inc = 0;
+        if((tmp = parse_statement(lexed, offset, lsz, &inc)) != NULL) {
+            offset += inc;
             AST_CHILD_ADD(ret, tmp);
         }
         else break;

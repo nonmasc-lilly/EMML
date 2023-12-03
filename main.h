@@ -15,7 +15,9 @@
     } } free(_lex)\
 
 typedef enum token_types {
-    t_root, t_exit, t_label, t_iden, t_int, t_hex,
+    t_root, t_exit, t_label,
+    t_iden, t_int,  t_hex,
+    t_jump,
 } TOKEN_TYPE;
 
 struct token {

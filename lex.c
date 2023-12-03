@@ -6,9 +6,10 @@
 int tok(char *b) {
     int ret, isnum;
     char *si;
-    IFNCMP(b, "") ret = -1;
-    ELNCMP(b, "EXIT") ret = t_exit;
+    IFNCMP(b, "")      ret = -1;
+    ELNCMP(b, "EXIT")  ret = t_exit;
     ELNCMP(b, "LABEL") ret = t_label;
+    ELNCMP(b, "JUMP")  ret = t_jump;
     else {
         for(isnum=1,si=b; *si && isnum; si++)
             isnum = isdigit(*si);
@@ -36,15 +37,18 @@ char *STR_DUP(char *a) {
 
 struct token **lex(char *s, int *lsz) {
     char buff[1024] = {0};
-    int bp, rsz;
+    int bp, rsz, comment;
     char *si;
     struct token **ret;
 
+    comment = 0;
     ret = malloc(1);
     rsz = 0;
     bp=0;
 
     for(si=s; *si; si++) {
+        if(*si == '/') { comment = !comment; continue; }
+        if(comment) continue;
         if(isspace(*si)) {
             if(buff[0] == 0) continue;
             if(!tok(buff)) continue;
@@ -66,12 +70,13 @@ struct token **lex(char *s, int *lsz) {
 
 const char *id_type(int id_t) {
     switch(id_t) {
-    case t_root: return "root";
-    case t_exit: return "exit";
-    case t_int: return "int constant";
-    case t_hex: return "hex constant";
-    case t_iden: return "identifier";
+    case t_root:  return "root";
+    case t_exit:  return "exit";
+    case t_int:   return "int constant";
+    case t_hex:   return "hex constant";
+    case t_iden:  return "identifier";
     case t_label: return "label";
+    case t_jump:  return "jump";
     }
 }
 
