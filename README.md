@@ -44,7 +44,7 @@ TODO:
 
 \# = something i have finished working on
 
-\X = something that i have found a bug to fix
+X = something that i have found a bug to fix
 
 
 - [-] add subroutines (functions without arguments passed through)
