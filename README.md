@@ -47,6 +47,8 @@ TODO:
 X = something that i have found a bug to fix
 
 
+- [#] add labels
+- [#] add exit
 - [-] add subroutines (functions without arguments passed through)
 - [~] add jumps (goto in C for example, callsub for subroutines)
 - [-] add conditional jumps
