@@ -37,6 +37,7 @@ _start:
 ```
 
 TODO:
+
 \- = what i am planning to work on
 
 ~ = something i am currently working on
