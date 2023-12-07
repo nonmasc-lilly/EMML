@@ -34,17 +34,17 @@ X = something that i have found a bug to fix
 
 - [#] add labels
 - [#] add exit
-- [-] add subroutines (functions without arguments passed through)
+- [-] add subroutines (procedures without arguments passed through)
 - [#] add jumps (goto in C for example, callsub for subroutines)
-- [~] add conditional jumps
+- [#] add conditional jumps
 - [#] add register manipulation
 - [-] add stack variables
 - [-] add operations (add, sub, mul, etc)
 - [-] add scopes
 - [-] add syscall capability
 - [-] add include statements (similar to C includes)
-- [-] add procedures (this is function in the programming way)
-- [-] add functions (this is function in the math sense (i.e lambda functions))
-- [-] add macros
+- [-] add procedures
+- [-] add functions
+- [~] add macros
 - [-] prove turing completeness
 - [-] make self hosting
