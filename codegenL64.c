@@ -1,8 +1,11 @@
 #include "main.h"
+char *compile_expression(struct AST *a);
+
 
 char *compile_expression(struct AST *a) {
     char *ret;
-    const char *template, *tmp, *tmp2;
+    const char *template, *tmp, *tmp2, *tmp3;
+    static int expr_label_num = 0;
     switch(a->id) {
     case t_int:
         template = "  mov rax, %s\n";
@@ -10,7 +13,8 @@ char *compile_expression(struct AST *a) {
         sprintf(ret, template, a->value);
         break;
     case t_iden:
-        template = "  mov %s, %s\n";
+        template = "  xor rax, rax\n"
+                   "  mov %s, %s\n";
              if(!strcmp(a->value, "A")) (tmp2 = "al",  tmp = "ch");
         else if(!strcmp(a->value, "B")) (tmp2 = "al",  tmp = "cl");
         else if(!strcmp(a->value, "X")) (tmp2 = "ax",  tmp = "cx");
@@ -24,6 +28,25 @@ char *compile_expression(struct AST *a) {
         }
         ret = malloc(strlen(template) + strlen(tmp) + strlen(tmp2) + 1);
         sprintf(ret, template, tmp2, tmp);
+        break;
+    case t_equ:
+        template = "%s\n"
+                   "  mov rbx, rax\n"
+                   "%s\n"
+                   "  sub rbx, rax\n"
+                   "  cmp rbx, 0\n"
+                   "  jz .EL%d\n"
+                   "  xor rax, rax\n"
+                   "  jmp .EL%desc\n"
+                   ".EL%d:\n"
+                   "  mov rax, 1\n"
+                   ".EL%desc:\n";
+        tmp  = compile_expression(a->children[0]);
+        tmp2 = compile_expression(a->children[1]);
+        ret  = malloc(strlen(template) + strlen(tmp) + strlen(tmp2) + 20);
+        sprintf(ret, template, tmp, tmp2, expr_label_num, expr_label_num,
+            expr_label_num, expr_label_num);
+        expr_label_num++;
         break;
     default: ret = NULL;
     }
@@ -71,6 +94,26 @@ char *compile_jump(struct AST *a) {
     return ret;
 }
 
+char *compile_jump_if(struct AST *a) {
+    char *ret, *_expr;
+    const char *jump_if_template;
+    static int label_if = 0;
+    if(a->id != t_if) return NULL;
+    jump_if_template =
+        "%s\n"
+        "  ; jump if ;\n"
+        "  cmp rax, 0\n"
+        "  jz .IL%d\n"
+        "  jmp %s\n"
+        ".IL%d:\n";
+    _expr = compile_expression(a->children[0]);
+    ret = malloc(strlen(jump_if_template) + strlen(a->children[1]->value) +
+        strlen(_expr) + 41);
+    sprintf(ret, jump_if_template, _expr, label_if, a->children[1]->value, label_if);
+    label_if++;
+    return ret;
+}
+
 char *compile_register(struct AST *a) {
     char *ret, *_expr;
     const char *register_template, *reg_which;
@@ -89,11 +132,12 @@ char *compile_register(struct AST *a) {
     return ret;
 }
 
+#define STATEMENT_LEN 6
 char *compile_statement(struct AST *a) {
-    char *statements[] = { compile_label(a), compile_exit(a), compile_jump(a),
-        compile_register(a) };
+    char *statements[STATEMENT_LEN] = { compile_label(a), compile_exit(a),
+        compile_jump(a), compile_register(a), compile_jump_if(a) };
     int i;
-    for(i=0; i < sizeof(statements); i++) {
+    for(i=0; i < STATEMENT_LEN; i++) {
         if(statements[i] != NULL) return statements[i];
     }
     return NULL;

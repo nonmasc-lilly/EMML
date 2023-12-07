@@ -13,6 +13,7 @@ struct AST *ast_new() {
     ret->child_num = 0;
     return ret;
 }
+static struct AST *parse_expr(struct token **lexed, int offset, int lsz, int *outoff);
 
 static struct AST *parse_int(struct token **lexed, int offset, int lsz, int *outoff) {
     struct AST *ret;
@@ -36,11 +37,31 @@ static struct AST *parse_iden(struct token **lexed, int offset, int lsz, int *ou
     return ret;
 }
 
-#define EXPR_LEN 2
+static struct AST *parse_equals(struct token **lexed, int offset, int lsz, int *outoff) {
+    struct AST *ret, *_expr1, *_expr2;
+    int inoutoff;
+    BOUNDS_ASSERT(offset);
+    if(lexed[offset]->id != t_equ) return NULL;
+    inoutoff=1;
+    _expr1 = parse_expr(lexed, offset+inoutoff, lsz, &inoutoff);
+    ASSERT(_expr1 != NULL, "expected 2 expressions after '='\n", offset+inoutoff);
+    _expr2 = parse_expr(lexed, offset+inoutoff, lsz, &inoutoff);
+    ASSERT(_expr2 != NULL, "expected 2 expressions after '='\n", offset+inoutoff);
+    ret = AST_NEW();
+    ret->id = t_equ;
+    ret->value = NULL;
+    AST_CHILD_ADD(ret, _expr1);
+    AST_CHILD_ADD(ret, _expr2);
+    *outoff += inoutoff;
+    return ret;
+}
+
+#define EXPR_LEN 3
 static struct AST *parse_expr(struct token **lexed, int offset, int lsz, int *outoff) {
     int i;
     struct AST *exprs[EXPR_LEN] = { parse_int(lexed, offset, lsz, outoff),
-        parse_iden(lexed, offset, lsz, outoff) };
+        parse_iden(lexed, offset, lsz, outoff),
+        parse_equals(lexed, offset, lsz, outoff) };
     for(i = 0; i < EXPR_LEN; i++)
         if(exprs[i] != NULL) return exprs[i];
     return NULL;
@@ -48,62 +69,78 @@ static struct AST *parse_expr(struct token **lexed, int offset, int lsz, int *ou
 
 static struct AST *parse_exit(struct token **lexed, int offset, int lsz, int *outoff) {
     struct AST *ret, *_expr;
+    int inoutoff;
     BOUNDS_ASSERT(offset);
     if(lexed[offset]->id != t_exit) return NULL;
-    _expr = parse_expr(lexed, offset+1, lsz, outoff);
-    ASSERT(_expr != NULL, "ERROR expected int const after exit\n", offset + *outoff);
+    inoutoff=1;
+    _expr = parse_expr(lexed, offset+inoutoff, lsz, &inoutoff);
+    ASSERT(_expr != NULL, "ERROR expected int const after exit\n", offset + inoutoff);
     ret = AST_NEW();
     ret->id = t_exit;
     ret->value = NULL;
     AST_CHILD_ADD(ret, _expr);
-    *outoff += 1;
+    *outoff += inoutoff;
     return ret;
 }
 
 static struct AST *parse_label(struct token **lexed, int offset, int lsz, int *outoff) {
     struct AST *ret, *_iden;
+    int inoutoff;
     BOUNDS_ASSERT(offset);
     if(lexed[offset]->id != t_label) return NULL;
-    _iden = parse_iden(lexed, offset+1, lsz, outoff);
-    ASSERT(_iden != NULL, "ERROR expected iden after label\n", offset + *outoff);
+    inoutoff=1;
+    _iden = parse_iden(lexed, offset+inoutoff, lsz, &inoutoff);
+    ASSERT(_iden != NULL, "ERROR expected iden after label\n", offset + inoutoff);
     ret = AST_NEW();
     ret->id = t_label;
     ret->value = NULL;
     AST_CHILD_ADD(ret, _iden);
-    *outoff += 1;
+    *outoff += inoutoff;
     return ret;
 }
 
 static struct AST *parse_register(struct token **lexed, int offset, int lsz, int *outoff) {
     struct AST *ret, *_iden, *_expr;
+    int inoutoff;
     if(offset > lsz-1) return NULL;
     if(lexed[offset]->id != t_register) return NULL;
-    _iden = parse_iden(lexed, offset+1, lsz, outoff);
-    ASSERT(_iden != NULL, "ERROR expected register after label\n", offset + *outoff);
+    inoutoff = 1;
+    _iden = parse_iden(lexed, offset+inoutoff, lsz, &inoutoff);
+    ASSERT(_iden != NULL, "ERROR expected register after label\n", offset + inoutoff);
     ASSERT(IS_REGISTER(_iden->value), "ERROR expected a register after label\n",
-           offset + *outoff);
-    _expr = parse_expr(lexed, offset+2, lsz, outoff);
-    ASSERT(_expr != NULL, "ERROR expected integer after register\n", offset + *outoff);
+           offset + inoutoff);
+    _expr = parse_expr(lexed, offset+inoutoff, lsz, &inoutoff);
+    ASSERT(_expr != NULL, "ERROR expected integer after register\n", offset + inoutoff);
     ret = AST_NEW();
     ret->id = t_register;
     ret->value = NULL;
     AST_CHILD_ADD(ret, _iden);
     AST_CHILD_ADD(ret, _expr);
-    *outoff += 1;
+    *outoff += inoutoff;
     return ret;
 }
 
 static struct AST *parse_jump(struct token **lexed, int offset, int lsz, int *outoff) {
-    struct AST *ret, *_iden;
+    struct AST *ret, *_iden, *_expr;
+    int inoutoff, type;
     if(offset > lsz-1) return NULL;
     if(lexed[offset]->id != t_jump) return NULL;
-    _iden = parse_iden(lexed, offset+1, lsz, outoff);
-    ASSERT(_iden != NULL, "ERROR expected iden after label\n", offset + *outoff);
+    inoutoff=1;
+    _iden = parse_iden(lexed, offset+inoutoff, lsz, &inoutoff);
+    ASSERT(_iden != NULL, "ERROR expected iden after label\n", offset + inoutoff);
     ret = AST_NEW();
-    ret->id = t_jump;
     ret->value = NULL;
+    if(lexed[offset+inoutoff]->id == t_if) {
+        inoutoff+=1;
+        type = t_if;
+        _expr = parse_expr(lexed, offset+inoutoff, lsz, &inoutoff);
+        ASSERT(_expr != NULL, "expected expression after jump if statement\n", 
+            offset+inoutoff);
+        AST_CHILD_ADD(ret, _expr);
+    } else type = t_jump;
+    ret->id = type;
     AST_CHILD_ADD(ret, _iden);
-    *outoff += 1;
+    *outoff += inoutoff;
     return ret;
 }
 

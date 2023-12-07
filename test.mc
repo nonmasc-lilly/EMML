@@ -1,8 +1,9 @@
 
-
 LABEL _start
-EXIT 0
+REGISTER A 10
+JUMP end IF = A 10
+EXIT 0 
 
 
-
-
+LABEL end
+EXIT 123

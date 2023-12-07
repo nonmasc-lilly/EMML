@@ -3,7 +3,7 @@
 
 #define IFNCMP(a, b) if(!strcmp(a, b))
 #define ELNCMP(a, b) else IFNCMP(a, b)
-int tok(char *b) {
+static int tok(char *b) {
     int ret, isnum;
     char *si;
     IFNCMP(b, "")         ret = -1;
@@ -11,6 +11,7 @@ int tok(char *b) {
     ELNCMP(b, "LABEL")    ret = t_label;
     ELNCMP(b, "JUMP")     ret = t_jump;
     ELNCMP(b, "REGISTER") ret = t_register;
+    ELNCMP(b, "IF")       ret = t_if;
     else {
         for(isnum=1,si=b; *si && isnum; si++)
             isnum = isdigit(*si);
@@ -21,7 +22,16 @@ int tok(char *b) {
 #undef IFNCMP
 #undef ELNCMP
 
-int tokhasarg(int tok) {
+static int op(char c) {
+    int ret;
+    switch(c) {
+    case '=': ret = t_equ; break;
+    default:  ret = -1;    break;
+    }
+    return ret+1;
+}
+
+static int tokhasarg(int tok) {
     int arg_toks[] = { t_int, t_iden },
         i = 0;
     for(i=0; i < sizeof(arg_toks); i++)
@@ -50,15 +60,23 @@ struct token **lex(char *s, int *lsz) {
     for(si=s; *si; si++) {
         if(*si == '/') { comment = !comment; continue; }
         if(comment) continue;
-        if(isspace(*si)) {
-            if(buff[0] == 0) continue;
-            if(!tok(buff)) continue;
+        if(isspace(*si) || op(*si)) {
+            if(buff[0] == 0) goto checkop;
+            if(!tok(buff)) goto checkop;
             ret = realloc(ret, (rsz+1)*TOKEN_SIZE);
             ret[rsz] = TOKEN_NEW();
             ret[rsz]->id = tok(buff)-1;
             ret[rsz]->value = tokhasarg(tok(buff)-1) ? STR_DUP(buff) : NULL;
             rsz++;
             buff[bp=0]=0;
+            checkop:
+                if(op(*si)) {
+                    ret = realloc(ret, (rsz+1)*TOKEN_SIZE);
+                    ret[rsz] = TOKEN_NEW();
+                    ret[rsz]->id = op(*si)-1;
+                    ret[rsz]->value = NULL;
+                    rsz++;
+                }
             continue;
         }
         buff[bp++] = *si;
@@ -79,6 +97,8 @@ const char *id_type(int id_t) {
     case t_label:    return "label";
     case t_jump:     return "jump";
     case t_register: return "register";
+    case t_equ:      return "=";
+    case t_if:       return "if";
     default:         return "(null)";
     }
 }

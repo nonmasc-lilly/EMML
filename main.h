@@ -20,7 +20,8 @@
 typedef enum token_types {
     t_root, t_exit,     t_label,
     t_iden, t_int,      t_hex,
-    t_jump, t_register
+    t_jump, t_register, t_equ,
+    t_if,
 } TOKEN_TYPE;
 
 struct token {
@@ -56,7 +57,6 @@ struct AST *ast_new();
 
 int repast(struct AST *a, int n);
 struct AST *parse(struct token **lexed, int lsz);
-
 
 char *compile(struct AST *ast);
 
