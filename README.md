@@ -41,7 +41,7 @@ X = something that i have found a bug to fix
 - [#] add register manipulation
 - [~] add stack variables
 - [-] add operations (add, sub, mul, etc)
-- [-] add scopes
+- [~] add scopes
 - [-] add syscall capability
 - [#] add include statements (similar to C includes)
 - [-] add procedures
