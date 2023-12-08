@@ -1,7 +1,10 @@
 
+INCLUDE "bool.mc"
+
+
 LABEL _start
 REGISTER A 10
-JUMP end IF = A 10
+JUMP end IF %true
 EXIT 0 
 
 

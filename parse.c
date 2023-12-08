@@ -106,9 +106,10 @@ static struct AST *parse_register(struct token **lexed, int offset, int lsz, int
     if(lexed[offset]->id != t_register) return NULL;
     inoutoff = 1;
     _iden = parse_iden(lexed, offset+inoutoff, lsz, &inoutoff);
-    ASSERT(_iden != NULL, "ERROR expected register after label\n", offset + inoutoff);
-    ASSERT(IS_REGISTER(_iden->value), "ERROR expected a register after label\n",
-           offset + inoutoff);
+    ASSERT(_iden != NULL, "ERROR expected register after register statement\n",
+        offset + inoutoff);
+    ASSERT(IS_REGISTER(_iden->value), "ERROR expected an register after register"
+        "statement\n", offset + inoutoff);
     _expr = parse_expr(lexed, offset+inoutoff, lsz, &inoutoff);
     ASSERT(_expr != NULL, "ERROR expected integer after register\n", offset + inoutoff);
     ret = AST_NEW();

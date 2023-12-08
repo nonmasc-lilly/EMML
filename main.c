@@ -18,7 +18,7 @@ int help() {
 
 int main(int argc, char *argv[]) {
     FILE *fp;
-    int sz, lsz, i;
+    int sz, lsz, psz, i, debug;
     char *content, *compiled, *ofile;
     struct token **lexed;
     struct AST *parsed;
@@ -27,31 +27,35 @@ int main(int argc, char *argv[]) {
         help();
         exit(-1);
     }
+    debug = 0;
     for(i = 0; i < argc; i++) {
         if(argv[i][0] == '-') switch(argv[i][1]) {
         case 'o': ofile = argv[i+1]; break;
         case 'h': help(); exit(0); break;
+        case 'd': debug = 1; break;
         default: printf("invalid argument: %s\n", argv[i]);
         }
     }
     fp = fopen(argv[1], "r");
-    content = malloc(sz = (fseek(fp, 0L, SEEK_END), ftell(fp)));
+    content = calloc(1,sz = (fseek(fp, 0L, SEEK_END), ftell(fp)));
     rewind(fp);
     fread(content, 1, sz, fp);
     fclose(fp);    
 
-    printf("Input file contents:\n%s\nlexing...\n", content);
+    if(debug) printf("Input file contents:\n%s\nlexing...\n", content);
     lexed = lex(content, &lsz);
-    printf("Finished lexing!\nLex contents:\n");
+    lexed = preprocess(lexed, lsz, &psz, NULL, 0);
+    lsz = psz;
+    if(debug) printf("Finished lexing!\nLex contents:\n");
     for(i=0;i < lsz;i++) reptok(*lexed[i], i);
-    printf("parsing...\n");
+    if(debug) printf("parsing...\n");
     parsed = parse(lexed, lsz);
-    printf("Finished parsing!\nParse contents:\n");
-    repast(parsed, 0);
-    printf("compiling...\n");
+    if(debug) printf("Finished parsing!\nParse contents:\n");
+    if(debug) repast(parsed, 0);
+    if(debug) printf("compiling...\n");
     compiled = compile(parsed);
-    printf("Finished compiling!\nCompile contents:\n%s\n", compiled);
-    printf("Creating %s...\n", ofile);
+    if(debug) printf("Finished compiling!\nCompile contents:\n%s\n", compiled);
+    if(debug) printf("Creating %s...\n", ofile);
     fp = fopen(ofile, "w");
     fwrite(compiled, 1, strlen(compiled), fp);
     fclose(fp);
