@@ -38,13 +38,13 @@ X = something that i have found a bug to fix
 - [#] add jumps (goto in C for example, callsub for subroutines)
 - [#] add conditional jumps
 - [#] add register manipulation
-- [-] add stack variables
+- [~] add stack variables
 - [-] add operations (add, sub, mul, etc)
 - [-] add scopes
 - [-] add syscall capability
-- [-] add include statements (similar to C includes)
+- [#] add include statements (similar to C includes)
 - [-] add procedures
 - [-] add functions
-- [~] add macros
+- [#] add macros
 - [-] prove turing completeness
 - [-] make self hosting
