@@ -76,14 +76,25 @@ char *compile_exit(struct AST *a, struct scope_node *scope) {
     if(a->id != t_exit) return NULL;
     exit_template =
         "  ; syscall exit ;\n"
+        "  add rsp, %d\n"
         "%s"
         "  mov rdi, rax\n"
         "  mov rax, 60\n"
         "  syscall\n";
     _expr = compile_expression(a->children[0], scope);
     ret = malloc(strlen(exit_template) + strlen(_expr)+1);
-    sprintf(ret, exit_template, _expr);
+    sprintf(ret, exit_template, scope->stack_size, _expr);
     free(_expr);
+    return ret;
+}
+
+char *compile_asm(struct AST *a, struct scope_node *scope) {
+    char *ret;
+    if(a->id != t_asm) return NULL;
+    ret = STR_DUP(a->children[0]->value);
+    ret = realloc(ret, strlen(ret)+1);
+    ret[strlen(ret)]='\n';
+    ret[strlen(ret)+1]=0;
     return ret;
 }
 
@@ -221,11 +232,12 @@ char *compile_declaration(struct AST *a, struct scope_node *scope) {
     return IGNORE;
 }
 
-#define STATEMENT_LEN 8 
+#define STATEMENT_LEN 9
 char *compile_statement(struct AST *a, struct scope_node **scope) {
     char *statements[STATEMENT_LEN] = { compile_label(a, *scope), compile_exit(a, *scope),
         compile_jump(a, *scope), compile_register(a, *scope), compile_jump_if(a, *scope),
-        compile_scope(a, *scope), compile_declaration(a, *scope), compile_set(a, *scope), };
+        compile_scope(a, *scope), compile_declaration(a, *scope), compile_set(a, *scope),
+        compile_asm(a, *scope) };
     int i;
     for(i=0; i < STATEMENT_LEN; i++) {
         if(statements[i] == IGNORE) return IGNORE;

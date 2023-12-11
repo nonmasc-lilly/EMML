@@ -24,6 +24,7 @@ static int tok(char *b) {
     ELNCMP(b, "LONG")     ret = t_long_type;
     ELNCMP(b, "POINTER")  ret = t_pointer_type;
     ELNCMP(b, "SET")      ret = t_set;
+    ELNCMP(b, "ASM")      ret = t_asm;
     else {
         for(isnum=1,si=b; *si && isnum; si++) {
             isnum = isdigit(*si) || *si == '-';
@@ -38,8 +39,10 @@ static int tok(char *b) {
 static int op(char c) {
     int ret;
     switch(c) {
-    case '=': ret = t_equ; break;
-    default:  ret = -1;    break;
+    case '=': ret = t_equ;   break;
+    case '{': ret = t_start; break;
+    case '}': ret = t_end;   break;
+    default:  ret = -1;      break;
     }
     return ret+1;
 }
@@ -202,6 +205,7 @@ const char *id_type(int id_t) {
     case t_long_type:    return "long type";
     case t_pointer_type: return "pointer type";
     case t_set:          return "set";
+    case t_asm:          return "asm";
     default:             return "(null)";
     }
 }

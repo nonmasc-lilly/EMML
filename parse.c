@@ -37,6 +37,17 @@ static struct AST *parse_char(struct token **lexed, int offset, int lsz, int *ou
     return ret;
 }
 
+static struct AST *parse_str(struct token **lexed, int offset, int lsz, int *outoff) {
+    struct AST *ret;
+    BOUNDS_ASSERT(offset);
+    if(lexed[offset]->id != t_str_lit) return NULL;
+    ret = AST_NEW();
+    ret->id = t_str_lit;
+    ret->value = STR_DUP(lexed[offset]->value);
+    *outoff += 1;
+    return ret;
+}
+
 static struct AST *parse_type(struct token **lexed, int offset, int lsz, int *outoff) {
     struct AST *ret;
     BOUNDS_ASSERT(offset);
@@ -105,12 +116,29 @@ static struct AST *parse_exit(struct token **lexed, int offset, int lsz, int *ou
     if(lexed[offset]->id != t_exit) return NULL;
     inoutoff=1;
     _expr = parse_expr(lexed, offset+inoutoff, lsz, &inoutoff);
-    ASSERT(_expr != NULL, "ERROR expected int const after exit\n", offset + inoutoff,
+    ASSERT(_expr != NULL, "expected int const after exit\n", offset + inoutoff,
         lexed[offset+inoutoff]->line, lexed[offset+inoutoff]->file);
     ret = AST_NEW();
     ret->id = t_exit;
     ret->value = NULL;
     AST_CHILD_ADD(ret, _expr);
+    *outoff += inoutoff;
+    return ret;
+}
+
+static struct AST *parse_asm(struct token **lexed, int offset, int lsz, int *outoff) {
+    struct AST *ret, *_str;
+    int inoutoff;
+    BOUNDS_ASSERT(offset);
+    if(lexed[offset]->id != t_asm) return NULL;
+    inoutoff=1;
+    _str = parse_str(lexed, offset+inoutoff, lsz, &inoutoff);
+    ASSERT(_str != NULL, "expected string literal after asm directive\n", offset+inoutoff,
+        lexed[offset+inoutoff]->line, lexed[offset+inoutoff]->file);
+    ret = AST_NEW();
+    ret->id = t_asm;
+    ret->value = NULL;
+    AST_CHILD_ADD(ret, _str);
     *outoff += inoutoff;
     return ret;
 }
@@ -251,7 +279,7 @@ static struct AST *parse_set(struct token **lexed, int offset, int lsz, int *out
     return ret;
 }
 
-#define STATEMENT_LEN 7
+#define STATEMENT_LEN 8
 static struct AST *parse_statement(struct token **lexed, int offset, int lsz,
         int *outoff, int isroot) {
     struct AST *statements[STATEMENT_LEN] = { parse_exit(lexed, offset, lsz, outoff),
@@ -259,7 +287,7 @@ static struct AST *parse_statement(struct token **lexed, int offset, int lsz,
         parse_register(lexed, offset, lsz, outoff),
         parse_scope(lexed, offset, lsz, outoff),
         parse_declaration(lexed, offset, lsz, outoff),
-        parse_set(lexed, offset, lsz, outoff) };
+        parse_set(lexed, offset, lsz, outoff), parse_asm(lexed, offset, lsz, outoff) };
     int i;
     for(i=0; i < STATEMENT_LEN; i++)
         if(statements[i] != NULL) {
