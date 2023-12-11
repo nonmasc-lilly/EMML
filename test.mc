@@ -1,12 +1,11 @@
-
 INCLUDE "bool.mc"
 
-
-LABEL _start
-REGISTER A 10
-JUMP end IF %true
-EXIT 0 
-
-
 LABEL end
-EXIT 123
+    EXIT 0
+
+LABEL _start START
+    DECLARE SHORT C
+    SET C 10
+    REGISTER A = C 10
+    JUMP end IF C
+END

@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
     fclose(fp);    
 
     if(debug) printf("Input file contents:\n%s\nlexing...\n", content);
-    lexed = lex(content, &lsz);
+    lexed = lex(argv[1], content, &lsz);
     lexed = preprocess(lexed, lsz, &psz, NULL, 0);
     lsz = psz;
     if(debug) printf("Finished lexing!\nLex contents:\n");
