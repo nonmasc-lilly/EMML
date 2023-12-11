@@ -35,12 +35,14 @@ X = something that i have found a bug to fix
 - [#] add labels
 - [#] add exit
 - [#] add asm directive
-- [-] add subroutines (procedures without arguments passed through)
+- [~] add subroutines (procedures without arguments passed through)
+- [~] add argument register set (rdi, rsi, rdx, r10, r8, r9)
+- [-] add extern subroutines
 - [#] add jumps (goto in C for example, callsub for subroutines)
 - [#] add conditional jumps
 - [#] add register manipulation
 - [#] add stack variables
-- [~] add operations (add, sub, mul, etc)
+- [#] add operations (add, sub, mul, etc)
 - [#] add scopes
 - [-] add syscall capability
 - [#] add include statements (similar to C includes)
