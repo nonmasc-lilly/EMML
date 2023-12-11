@@ -5,7 +5,8 @@ LABEL end
 
 LABEL _start START
     DECLARE SHORT C
-    SET C 10
-    REGISTER A = C 10
+    SET C 20
+    REGISTER A = ./ C 2. 10
     JUMP end IF C
 END
+

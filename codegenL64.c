@@ -50,20 +50,55 @@ char *compile_expression(struct AST *a, struct scope_node *scope) {
         template = "%s\n"
                    "  mov rbx, rax\n"
                    "%s\n"
-                   "  sub rbx, rax\n"
-                   "  cmp rbx, 0\n"
-                   "  jz .EL%d\n"
-                   "  xor rax, rax\n"
-                   "  jmp .EL%desc\n"
-                   ".EL%d:\n"
-                   "  mov rax, 1\n"
-                   ".EL%desc:\n";
+                   "  xor rcx, rcx\n"
+                   "  mov rdx, 1\n"
+                   "  cmp rax, rbx\n"
+                   "  cmove rax, rdx\n"
+                   "  cmovne rax, rcx\n";
         tmp  = compile_expression(a->children[0], scope);
         tmp2 = compile_expression(a->children[1], scope);
         ret  = malloc(strlen(template) + strlen(tmp) + strlen(tmp2) + 20);
-        sprintf(ret, template, tmp, tmp2, expr_label_num, expr_label_num,
-            expr_label_num, expr_label_num);
-        expr_label_num++;
+        sprintf(ret, template, tmp, tmp2);
+        break;
+    case t_add:
+        template = "%s\n"
+                   "  mov rbx, rax\n"
+                   "%s\n"
+                   "  add rax, rbx\n";
+        tmp2 = compile_expression(a->children[0], scope);
+        tmp  = compile_expression(a->children[1], scope);
+        ret  = malloc(strlen(template) + strlen(tmp) + strlen(tmp2) + 20);
+        sprintf(ret, template, tmp, tmp2);
+        break;
+    case t_sub:
+        template = "%s\n"
+                   "  mov rbx, rax\n"
+                   "%s\n"
+                   "  sub rax, rbx\n";
+        tmp2 = compile_expression(a->children[0], scope);
+        tmp  = compile_expression(a->children[1], scope);
+        ret  = malloc(strlen(template) + strlen(tmp) + strlen(tmp2) + 21);
+        sprintf(ret, template, tmp, tmp2);
+        break;
+    case t_mul:
+        template = "%s\n"
+                   "  mov rbx, rax\n"
+                   "%s\n"
+                   "  imul rbx\n";
+        tmp2 = compile_expression(a->children[0], scope);
+        tmp  = compile_expression(a->children[1], scope);
+        ret  = malloc(strlen(template) + strlen(tmp) + strlen(tmp2) + 21);
+        sprintf(ret, template, tmp, tmp2);
+        break;
+    case t_div:
+        template = "%s\n"
+                   "  mov rbx, rax\n"
+                   "%s\n"
+                   "  idiv rbx\n";
+        tmp2 = compile_expression(a->children[0], scope);
+        tmp  = compile_expression(a->children[1], scope);
+        ret  = malloc(strlen(template) + strlen(tmp) + strlen(tmp2) + 21);
+        sprintf(ret, template, tmp, tmp2);
         break;
     default: ret = NULL;
     }

@@ -98,12 +98,98 @@ static struct AST *parse_equals(struct token **lexed, int offset, int lsz, int *
     return ret;
 }
 
-#define EXPR_LEN 3
+static struct AST *parse_add(struct token **lexed, int offset, int lsz, int *outoff) {
+    struct AST *ret, *_expr1, *_expr2;
+    int inoutoff;
+    BOUNDS_ASSERT(offset);
+    if(lexed[offset]->id != t_add) return NULL;
+    inoutoff=1;
+    _expr1 = parse_expr(lexed, offset+inoutoff, lsz, &inoutoff);
+    ASSERT(_expr1 != NULL, "expected 2 expressions after add expression\n", offset+inoutoff,
+        lexed[offset+inoutoff]->line, lexed[offset+inoutoff]->file);
+    _expr2 = parse_expr(lexed, offset+inoutoff, lsz, &inoutoff);
+    ASSERT(_expr2 != NULL, "expected 2 expressions after add expression\b", offset+inoutoff,
+        lexed[offset+inoutoff]->line, lexed[offset+inoutoff]->file);
+    ret = AST_NEW();
+    ret->id = t_add;
+    ret->value = NULL;
+    AST_CHILD_ADD(ret, _expr1);
+    AST_CHILD_ADD(ret, _expr2);
+    *outoff += inoutoff;
+    return ret;
+}
+
+static struct AST *parse_sub(struct token **lexed, int offset, int lsz, int *outoff) {
+    struct AST *ret, *_expr1, *_expr2;
+    int inoutoff;
+    BOUNDS_ASSERT(offset);
+    if(lexed[offset]->id != t_sub) return NULL;
+    inoutoff=1;
+    _expr1 = parse_expr(lexed, offset+inoutoff, lsz, &inoutoff);
+    ASSERT(_expr1 != NULL, "expected 2 expressions after sub expression\n", offset+inoutoff,
+        lexed[offset+inoutoff]->line, lexed[offset+inoutoff]->file);
+    _expr2 = parse_expr(lexed, offset+inoutoff, lsz, &inoutoff);
+    ASSERT(_expr2 != NULL, "expected 2 expressions after sub expression\b", offset+inoutoff,
+        lexed[offset+inoutoff]->line, lexed[offset+inoutoff]->file);
+    ret = AST_NEW();
+    ret->id = t_sub;
+    ret->value = NULL;
+    AST_CHILD_ADD(ret, _expr1);
+    AST_CHILD_ADD(ret, _expr2);
+    *outoff += inoutoff;
+    return ret;
+}
+
+static struct AST *parse_mul(struct token **lexed, int offset, int lsz, int *outoff) {
+    struct AST *ret, *_expr1, *_expr2;
+    int inoutoff;
+    BOUNDS_ASSERT(offset);
+    if(lexed[offset]->id != t_mul) return NULL;
+    inoutoff=1;
+    _expr1 = parse_expr(lexed, offset+inoutoff, lsz, &inoutoff);
+    ASSERT(_expr1 != NULL, "expected 2 expressions after mul expression\n", offset+inoutoff,
+        lexed[offset+inoutoff]->line, lexed[offset+inoutoff]->file);
+    _expr2 = parse_expr(lexed, offset+inoutoff, lsz, &inoutoff);
+    ASSERT(_expr2 != NULL, "expected 2 expressions after mul expression\b", offset+inoutoff,
+        lexed[offset+inoutoff]->line, lexed[offset+inoutoff]->file);
+    ret = AST_NEW();
+    ret->id = t_mul;
+    ret->value = NULL;
+    AST_CHILD_ADD(ret, _expr1);
+    AST_CHILD_ADD(ret, _expr2);
+    *outoff += inoutoff;
+    return ret;
+}
+
+static struct AST *parse_div(struct token **lexed, int offset, int lsz, int *outoff) {
+    struct AST *ret, *_expr1, *_expr2;
+    int inoutoff;
+    BOUNDS_ASSERT(offset);
+    if(lexed[offset]->id != t_div) return NULL;
+    inoutoff=1;
+    _expr1 = parse_expr(lexed, offset+inoutoff, lsz, &inoutoff);
+    ASSERT(_expr1 != NULL, "expected 2 expressions after div expression\n", offset+inoutoff,
+        lexed[offset+inoutoff]->line, lexed[offset+inoutoff]->file);
+    _expr2 = parse_expr(lexed, offset+inoutoff, lsz, &inoutoff);
+    ASSERT(_expr2 != NULL, "expected 2 expressions after div expression\b", offset+inoutoff,
+        lexed[offset+inoutoff]->line, lexed[offset+inoutoff]->file);
+    ret = AST_NEW();
+    ret->id = t_div;
+    ret->value = NULL;
+    AST_CHILD_ADD(ret, _expr1);
+    AST_CHILD_ADD(ret, _expr2);
+    *outoff += inoutoff;
+    return ret;
+}
+
+#define EXPR_LEN 7
 static struct AST *parse_expr(struct token **lexed, int offset, int lsz, int *outoff) {
     int i;
     struct AST *exprs[EXPR_LEN] = { parse_int(lexed, offset, lsz, outoff),
         parse_iden(lexed, offset, lsz, outoff),
-        parse_equals(lexed, offset, lsz, outoff) };
+        parse_equals(lexed, offset, lsz, outoff), parse_add(lexed, offset, lsz, outoff),
+        parse_sub(lexed, offset, lsz, outoff), parse_mul(lexed, offset, lsz, outoff),
+        parse_div(lexed, offset, lsz, outoff) };
     for(i = 0; i < EXPR_LEN; i++)
         if(exprs[i] != NULL) return exprs[i];
     return NULL;
