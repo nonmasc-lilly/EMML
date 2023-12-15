@@ -30,6 +30,8 @@ static int tok(char *b) {
     ELNCMP(b, "SUB")      ret = t_sub;
     ELNCMP(b, "MUL")      ret = t_mul;
     ELNCMP(b, "DIV")      ret = t_div;
+    ELNCMP(b, "ALLOC")    ret = t_alloc;
+    ELNCMP(b, "GET")      ret = t_get;
     else {
         for(isnum=1,si=b; *si && isnum; si++) {
             isnum = isdigit(*si) || *si == '-';
@@ -64,7 +66,7 @@ static int tokhasarg(int tok) {
     return 0;
 }
 
-char *STR_DUP(char *a) {
+char *STR_DUP(const char *a) {
     char *ret;
     ret = malloc(strlen(a));
     strcpy(ret, a);
@@ -220,6 +222,8 @@ const char *id_type(int id_t) {
     case t_sub:          return "sub";
     case t_mul:          return "mul";
     case t_div:          return "div";
+    case t_alloc:        return "alloc";
+    case t_get:          return "get";
     default:             return "(null)";
     }
 }

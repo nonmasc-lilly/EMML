@@ -36,7 +36,8 @@ typedef enum token_types {
     t_short_type,   t_int_type, t_long_type,
     t_pointer_type, t_set,      t_char,
     t_asm,          t_add,      t_sub,
-    t_mul,          t_div,
+    t_mul,          t_div,      t_alloc,
+    t_get,
 } TOKEN_TYPE;
 
 struct token {
@@ -46,7 +47,7 @@ struct token {
     const char *file;
 };
 
-char *STR_DUP(char *a);
+char *STR_DUP(const char *a);
 
 const char *id_type(int t_id);
 int reptok(struct token t, int i);
@@ -101,7 +102,7 @@ int size_from_type(int type);
 
 struct variable {
     int size;
-    int type;
+    int type, subtype;
     int offset;
     const char *name;
     const char *file;

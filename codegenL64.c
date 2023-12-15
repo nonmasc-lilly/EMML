@@ -5,6 +5,7 @@ char *compile_expression(struct AST *a, struct scope_node *scope);
 char *compile_expression(struct AST *a, struct scope_node *scope) {
     char *ret;
     const char *template, *tmp, *tmp2, *tmp3;
+    struct variable var;
     static int expr_label_num = 0;
     int i;
     switch(a->id) {
@@ -100,6 +101,17 @@ char *compile_expression(struct AST *a, struct scope_node *scope) {
         ret  = malloc(strlen(template) + strlen(tmp) + strlen(tmp2) + 21);
         sprintf(ret, template, tmp, tmp2);
         break;
+    case t_get:
+        template = "%s\n"
+                   "  mov rbx, [rsp+%d+rax*%d]\n"
+                   "  mov rax, rbx\n";
+        for(i = 0; i < scope->variable_length; i++)
+            if(!strcmp(scope->variables[i].name, a->children[0]->value))
+                var = scope->variables[i];
+        tmp = compile_expression(a->children[1], scope);
+        ret = malloc(strlen(template) + strlen(tmp) + 21);
+        sprintf(ret, template, tmp, var.offset, size_from_type(var.subtype));
+        break;
     default: ret = NULL;
     }
     return ret;
@@ -111,14 +123,14 @@ char *compile_exit(struct AST *a, struct scope_node *scope) {
     if(a->id != t_exit) return NULL;
     exit_template =
         "  ; syscall exit ;\n"
+        "%s\n"
         "  add rsp, %d\n"
-        "%s"
         "  mov rdi, rax\n"
         "  mov rax, 60\n"
         "  syscall\n";
     _expr = compile_expression(a->children[0], scope);
     ret = malloc(strlen(exit_template) + strlen(_expr)+1);
-    sprintf(ret, exit_template, scope->stack_size, _expr);
+    sprintf(ret, exit_template, _expr, scope->stack_size);
     free(_expr);
     return ret;
 }
@@ -182,9 +194,26 @@ char *compile_jump_if(struct AST *a, struct scope_node *scope) {
 char *compile_set(struct AST *a, struct scope_node *scope) {
     char *ret, *_expr;
     struct variable var;
-    const char *set_template, *word, *reg;
+    const char *set_template, *word, *reg, *index;
     int i;
     if(a->id != t_set) return NULL;
+    if(a->child_num == 3) {
+        set_template = "%s\n"
+                       "  ; set ;\n"
+                       "  lea rbx, [%s*%d]\n"
+                       "  mov %s [rsp+%d+rbx], %s\n";
+        for(i = 0; i < scope->variable_length; i++)
+            if(!strcmp(scope->variables[i].name, a->children[0]->value))
+                var = scope->variables[i];
+        _expr = compile_expression(a->children[2], scope);
+        reg = reg_from_size(size_from_type(var.subtype));
+        word = word_from_size(size_from_type(var.subtype));
+        index = a->children[1]->value;
+        ret = malloc(strlen(set_template) + strlen(_expr) + strlen(word) + strlen(index) + 41);
+        sprintf(ret, set_template, _expr, index, size_from_type(var.subtype), word, var.offset,
+            reg);
+        return ret;
+    }
     set_template = "%s\n"
                    "  ; set ;\n"
                    "  mov %s [rsp+%d], %s\n";
@@ -216,6 +245,10 @@ char *compile_register(struct AST *a, struct scope_node *scope) {
     ret = malloc(strlen(register_template) + strlen(_expr) + strlen(reg_which)+1);
     sprintf(ret, register_template, _expr, reg_which);
     return ret;
+}
+
+char *compile_alloc(struct AST *a, struct scope_node *scope) {
+    return IGNORE;
 }
 
 char *compile_statement(struct AST *a, struct scope_node **scope);
@@ -267,12 +300,12 @@ char *compile_declaration(struct AST *a, struct scope_node *scope) {
     return IGNORE;
 }
 
-#define STATEMENT_LEN 9
+#define STATEMENT_LEN 10
 char *compile_statement(struct AST *a, struct scope_node **scope) {
     char *statements[STATEMENT_LEN] = { compile_label(a, *scope), compile_exit(a, *scope),
         compile_jump(a, *scope), compile_register(a, *scope), compile_jump_if(a, *scope),
         compile_scope(a, *scope), compile_declaration(a, *scope), compile_set(a, *scope),
-        compile_asm(a, *scope) };
+        compile_asm(a, *scope), compile_alloc(a, *scope) };
     int i;
     for(i=0; i < STATEMENT_LEN; i++) {
         if(statements[i] == IGNORE) return IGNORE;
