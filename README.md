@@ -37,6 +37,8 @@ X = something that i have found a bug to fix
 - [#] add asm directive
 - [~] add subroutines (procedures without arguments passed through)
 - [~] add argument register set (rdi, rsi, rdx, r10, r8, r9)
+- [#] add stack allocated arrays
+- [#] add pointer deref
 - [-] add extern subroutines
 - [#] add jumps (goto in C for example, callsub for subroutines)
 - [#] add conditional jumps
