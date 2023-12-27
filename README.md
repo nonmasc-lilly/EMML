@@ -51,5 +51,6 @@ X = something that i have found a bug to fix
 - [-] add procedures
 - [-] add functions
 - [#] add macros
+- [#] add while loops
 - [-] prove turing completeness
 - [-] make self hosting
