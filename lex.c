@@ -40,6 +40,11 @@ static int tok(char *b) {
     ELNCMP(b, "WHILE")    ret = t_while;
     ELNCMP(b, "DO")       ret = t_do;
     ELNCMP(b, "STOP")     ret = t_stop;
+    ELNCMP(b, "REF")      ret = t_ref;
+    ELNCMP(b, "DEREF")    ret = t_deref;
+    ELNCMP(b, "ARGSET")   ret = t_argset;
+    ELNCMP(b, "ARGEND")   ret = t_argend;
+    ELNCMP(b, "ARGGET")   ret = t_argget;
     else {
         for(isnum=1,si=b; *si && isnum; si++) {
             isnum = isdigit(*si) || *si == '-';
@@ -244,6 +249,9 @@ const char *id_type(int id_t) {
     case t_while:        return "while";
     case t_do:           return "do";
     case t_stop:         return "stop";
+    case t_argset:       return "argset";
+    case t_argend:       return "argend";
+    case t_argget:       return "argget";
     default:             return "(null)";
     }
 }

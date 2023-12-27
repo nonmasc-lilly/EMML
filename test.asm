@@ -3,19 +3,18 @@ section .text
 
 ; label ;
 _start:
-  ; while ;
-  .w0:  mov rax, 1
+  ; argset ;
+  mov rax, 0
+  mov rdi, rax
+  mov rax, 1
+  mov rsi, rax
+  mov rax, 2
+  mov rdx, rax
+  ; syscall exit ;
+  mov rax, rsi
 
-  or rax, rax
-  jz .w0o
-push '0'
-mov rax, 1
-mov rdi, 1
-mov rsi, rsp
-mov rdx, 1
-syscall
-pop rax
-
-  jmp .w0
-  .w0o:
+  add rsp, 0
+  mov rdi, rax
+  mov rax, 60
+  syscall
 

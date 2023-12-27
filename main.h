@@ -40,6 +40,8 @@ typedef enum token_types {
     t_get,          t_seta,     t_or,
     t_and,          t_xor,      t_not,
     t_while,        t_do,       t_stop,
+    t_ref,          t_deref,    t_argset,
+    t_argend,       t_argget,
 } TOKEN_TYPE;
 
 struct token {

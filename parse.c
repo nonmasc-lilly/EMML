@@ -332,6 +332,47 @@ static struct AST *parse_not(struct token **lexed, int offset, int lsz, int *out
     return ret;
 }
 
+static struct AST *parse_ref(struct token **lexed, int offset, int lsz, int *outoff, int *type) {
+    struct AST *ret, *_iden;
+    int inoutoff;
+    BOUNDS_ASSERT(offset);
+    if(lexed[offset]->id != t_ref) return NULL;
+    inoutoff=1;
+    _iden = parse_iden(lexed, offset+inoutoff, lsz, &inoutoff, NULL);
+    ASSERT(_iden != NULL, "expected identifier to reference\n", offset+inoutoff,
+        lexed[offset+inoutoff]->line, lexed[offset+inoutoff]->file);
+    ret = AST_NEW();
+    ret->id = t_ref;
+    ret->value = NULL;
+    AST_CHILD_ADD(ret, _iden);
+    *outoff += inoutoff;
+    if(type != NULL) *type = t_pointer_type;
+    return ret;
+}
+
+static struct AST *parse_deref(struct token **lexed, int offset, int lsz, int *outoff, int *type) {
+    struct AST *ret, *_type, *_expr;
+    int inoutoff, t1;
+    BOUNDS_ASSERT(offset);
+    if(lexed[offset]->id != t_deref) return NULL;
+    inoutoff=1;
+    _type = parse_type(lexed, offset+inoutoff, lsz, &inoutoff);
+    ASSERT(_type != NULL, "expected type for dereference\n", offset+inoutoff,
+        lexed[offset+inoutoff]->line, lexed[offset+inoutoff]->file);
+    _expr = parse_expr(lexed, offset+inoutoff, lsz, &inoutoff, &t1);
+    ASSERT(_expr != NULL, "expected expression to dereference\n", offset+inoutoff,
+        lexed[offset+inoutoff]->line, lexed[offset+inoutoff]->file);
+    ASSERT(t1 == t_pointer_type, "expected to dereference pointer\n", offset+inoutoff,
+        lexed[offset+inoutoff]->line, lexed[offset+inoutoff]->file);
+    ret = AST_NEW();
+    ret->id = t_deref;
+    ret->value = NULL;
+    AST_CHILD_ADD(ret, _expr);
+    *outoff += inoutoff;
+    if(type != NULL) *type = _type->id;
+    return ret;
+}
+
 static struct AST *parse_get(struct token **lexed, int offset, int lsz, int *outoff, int *type) {
     struct AST *ret, *_iden, *_expr;
     int inoutoff, t1, t2;
@@ -356,7 +397,26 @@ static struct AST *parse_get(struct token **lexed, int offset, int lsz, int *out
     return ret;
 }
 
-#define EXPR_LEN 12
+static struct AST *parse_argget(struct token **lexed, int offset, int lsz, int *outoff, int *type) {
+    struct AST *ret, *_int;
+    int inoutoff, t1;
+    BOUNDS_ASSERT(offset);
+    if(lexed[offset]->id != t_argget) return NULL;
+    inoutoff = 1;
+
+    _int = parse_int(lexed, offset+inoutoff, lsz, &inoutoff, &t1);
+    ASSERT(_int != NULL ,"expected constant int index of argget\n", offset+inoutoff,
+        lexed[inoutoff+offset]->line, lexed[inoutoff+offset]->file);
+    ret = AST_NEW();
+    ret->id = t_argget;
+    ret->value = NULL;
+    AST_CHILD_ADD(ret, _int);
+    *outoff += inoutoff;
+    *type = t_int_type;
+    return ret;
+}
+
+#define EXPR_LEN 15
 static struct AST *parse_expr(struct token **lexed, int offset, int lsz, int *outoff, int *type) {
     int i;
     struct AST *exprs[EXPR_LEN] = { parse_int(lexed, offset, lsz, outoff, type),
@@ -370,11 +430,38 @@ static struct AST *parse_expr(struct token **lexed, int offset, int lsz, int *ou
         parse_or(lexed, offset, lsz, outoff, type),
         parse_and(lexed, offset, lsz, outoff, type),
         parse_xor(lexed, offset, lsz, outoff, type),
-        parse_not(lexed, offset, lsz, outoff, type)
+        parse_not(lexed, offset, lsz, outoff, type),
+        parse_ref(lexed, offset, lsz, outoff, type),
+        parse_deref(lexed, offset, lsz, outoff, type),
+        parse_argget(lexed, offset, lsz, outoff, type),
     };
     for(i = 0; i < EXPR_LEN; i++)
         if(exprs[i] != NULL) return exprs[i];
     return NULL;
+}
+
+static struct AST *parse_argset(struct token **lexed, int offset, int lsz, int *outoff) {
+    struct AST *ret, *_expr[6] = {NULL};
+    int inoutoff, i, j, t1;
+    BOUNDS_ASSERT(offset);
+    if(lexed[offset]->id != t_argset) return NULL;
+    inoutoff=1;
+    for(i = 0; i < 6; i++) {
+        if(lexed[offset+inoutoff]->id == t_argend) break;
+        _expr[i] = parse_expr(lexed, offset+inoutoff, lsz, &inoutoff, &t1);
+        ASSERT(_expr[i] != NULL, "expected 6 or less expressions for argset\n", inoutoff+offset,
+            lexed[inoutoff+offset]->line, lexed[inoutoff+offset]->file);
+    }
+    ASSERT(lexed[offset+inoutoff]->id == t_argend, "expected argend after 6 or less expressions of argset\n",
+        inoutoff+offset, lexed[inoutoff+offset]->line, lexed[inoutoff+offset]->file);
+    inoutoff++;
+    ret = AST_NEW();
+    ret->id = t_argset;
+    ret->value = NULL;
+    for(j=0; j < i; j++)
+        AST_CHILD_ADD(ret, _expr[j]);
+    *outoff += inoutoff;
+    return ret;
 }
 
 static struct AST *parse_exit(struct token **lexed, int offset, int lsz, int *outoff) {
@@ -645,7 +732,7 @@ static struct AST *parse_set(struct token **lexed, int offset, int lsz, int *out
     return ret;
 }
 
-#define STATEMENT_LEN 11
+#define STATEMENT_LEN 12
 static struct AST *parse_statement(struct token **lexed, int offset, int lsz,
         int *outoff, int isroot) {
     struct AST *statements[STATEMENT_LEN] = { parse_exit(lexed, offset, lsz, outoff),
@@ -655,7 +742,8 @@ static struct AST *parse_statement(struct token **lexed, int offset, int lsz,
         parse_declaration(lexed, offset, lsz, outoff),
         parse_set(lexed, offset, lsz, outoff), parse_asm(lexed, offset, lsz, outoff),
         parse_alloc(lexed, offset, lsz, outoff), parse_seta(lexed, offset, lsz, outoff),
-        parse_while(lexed, offset, lsz, outoff) };
+        parse_while(lexed, offset, lsz, outoff), parse_argset(lexed, offset, lsz, outoff),
+         };
     int i;
     for(i=0; i < STATEMENT_LEN; i++)
         if(statements[i] != NULL) {

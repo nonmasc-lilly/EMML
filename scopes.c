@@ -88,7 +88,6 @@ struct scope_node *scope_from_ast(struct AST *a, struct scope_node *parent) {
     offset = 0;
     for(i = 0; i < node->variable_length; i++)
         node->variables[i].offset = (offset += node->variables[i].size);
-    printf("%d\n", offset % 8);
     if(!(offset % 8))
         node->stack_size = offset;
     else node->stack_size = offset + 8 - (offset % 8);
