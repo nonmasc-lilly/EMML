@@ -24,14 +24,22 @@ static int tok(char *b) {
     ELNCMP(b, "LONG")     ret = t_long_type;
     ELNCMP(b, "POINTER")  ret = t_pointer_type;
     ELNCMP(b, "SET")      ret = t_set;
+    ELNCMP(b, "SETA")     ret = t_seta;
     ELNCMP(b, "ASM")      ret = t_asm;
     ELNCMP(b, "EQU")      ret = t_equ;
     ELNCMP(b, "ADD")      ret = t_add;
     ELNCMP(b, "SUB")      ret = t_sub;
     ELNCMP(b, "MUL")      ret = t_mul;
     ELNCMP(b, "DIV")      ret = t_div;
+    ELNCMP(b, "OR")       ret = t_or;
+    ELNCMP(b, "AND")      ret = t_and;
+    ELNCMP(b, "XOR")      ret = t_xor;
+    ELNCMP(b, "NOT")      ret = t_not;
     ELNCMP(b, "ALLOC")    ret = t_alloc;
-    ELNCMP(b, "GET")      ret = t_get;
+    ELNCMP(b, "GETA")     ret = t_get;
+    ELNCMP(b, "WHILE")    ret = t_while;
+    ELNCMP(b, "DO")       ret = t_do;
+    ELNCMP(b, "STOP")     ret = t_stop;
     else {
         for(isnum=1,si=b; *si && isnum; si++) {
             isnum = isdigit(*si) || *si == '-';
@@ -53,6 +61,10 @@ static int op(char c) {
     case '/': ret = t_div;   break;
     case '{': ret = t_start; break;
     case '}': ret = t_end;   break;
+    case '|': ret = t_or;    break;
+    case '&': ret = t_and;   break;
+    case '^': ret = t_xor;   break;
+    case '~': ret = t_not;   break;
     default:  ret = -1;      break;
     }
     return ret+1;
@@ -223,7 +235,15 @@ const char *id_type(int id_t) {
     case t_mul:          return "mul";
     case t_div:          return "div";
     case t_alloc:        return "alloc";
-    case t_get:          return "get";
+    case t_get:          return "geta";
+    case t_seta:         return "seta";
+    case t_or:           return "or";
+    case t_and:          return "and";
+    case t_xor:          return "xor";
+    case t_not:          return "not";
+    case t_while:        return "while";
+    case t_do:           return "do";
+    case t_stop:         return "stop";
     default:             return "(null)";
     }
 }

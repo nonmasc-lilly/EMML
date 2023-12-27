@@ -37,7 +37,9 @@ typedef enum token_types {
     t_pointer_type, t_set,      t_char,
     t_asm,          t_add,      t_sub,
     t_mul,          t_div,      t_alloc,
-    t_get,
+    t_get,          t_seta,     t_or,
+    t_and,          t_xor,      t_not,
+    t_while,        t_do,       t_stop,
 } TOKEN_TYPE;
 
 struct token {

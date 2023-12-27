@@ -1,14 +1,13 @@
 INCLUDE "bool.mc"
 
-LABEL end START
-    EXIT 2
-END
-
 LABEL _start START
-    ALLOC 10 INT HELLO
-    SET 0 HELLO 0
-    SET 1 HELLO 23
-    JUMP end IF = .GET 0 HELLO. %true \ false \
-    EXIT .GET 1 HELLO.
+    WHILE 1 DO
+        ASM "push '0'"
+        ASM "mov rax, 1"
+        ASM "mov rdi, 1"
+        ASM "mov rsi, rsp"
+        ASM "mov rdx, 1"
+        ASM "syscall"
+        ASM "pop rax"
+    STOP
 END
-

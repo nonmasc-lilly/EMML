@@ -4,12 +4,18 @@ char *compile_expression(struct AST *a, struct scope_node *scope);
 
 char *compile_expression(struct AST *a, struct scope_node *scope) {
     char *ret;
-    const char *template, *tmp, *tmp2, *tmp3;
+    const char *template;
+    char *tmp, *tmp2, *tmp3;
     struct variable var;
     static int expr_label_num = 0;
     int i;
     switch(a->id) {
     case t_int:
+        if(!atoi(a->value)) {
+            template = "  xor rax, rax";
+            ret = calloc(1,strlen(template));
+            strcpy(ret, template);
+        }
         template = "  mov rax, %s\n";
         ret = malloc(strlen(template) + strlen(a->value)+1);
         sprintf(ret, template, a->value);
@@ -29,10 +35,10 @@ char *compile_expression(struct AST *a, struct scope_node *scope) {
         else {
             for(i = 0; i < scope->variable_length; i++) {
                 if(!strcmp(scope->variables[i].name, a->value)) {
-                    template = "  mov rax, [rsp+%d] ; var %s ;\n";
+                    template = "  mov %s, [rsp+%d] ; var %s ;\n";
                     ret = malloc(strlen(template) + 21);
-                    sprintf(ret, template, scope->variables[i].offset,
-                        scope->variables[i].name);
+                    sprintf(ret, template, reg_from_size(scope->variables[i].size),
+                        scope->variables[i].offset, scope->variables[i].name);
                     i = -1;
                     break;
                 }
@@ -100,6 +106,43 @@ char *compile_expression(struct AST *a, struct scope_node *scope) {
         tmp  = compile_expression(a->children[1], scope);
         ret  = malloc(strlen(template) + strlen(tmp) + strlen(tmp2) + 21);
         sprintf(ret, template, tmp, tmp2);
+        break;
+    case t_or:
+        template = "%s\n"
+                   "  mov rbx, rax\n"
+                   "%s\n"
+                   "  or rax, rbx\n";
+        tmp2 = compile_expression(a->children[0], scope);
+        tmp  = compile_expression(a->children[1], scope);
+        ret  = malloc(strlen(template) + strlen(tmp) + strlen(tmp2) + 1);
+        sprintf(ret, template, tmp, tmp2);
+        break;
+    case t_and:
+        template = "%s\n"
+                   "  mov rbx, rax\n"
+                   "%s\n"
+                   "  and rax, rbx\n";
+        tmp2 = compile_expression(a->children[0], scope);
+        tmp  = compile_expression(a->children[1], scope);
+        ret  = malloc(strlen(template) + strlen(tmp) + strlen(tmp2) + 1);
+        sprintf(ret, template, tmp, tmp2);
+        break;
+    case t_xor:
+        template = "%s\n"
+                   "  mov rbx, rax\n"
+                   "%s\n"
+                   "  xor rax, rbx\n";
+        tmp2 = compile_expression(a->children[0], scope);
+        tmp  = compile_expression(a->children[1], scope);
+        ret  = malloc(strlen(template) + strlen(tmp) + strlen(tmp2) + 1);
+        sprintf(ret, template, tmp, tmp2);
+        break;
+    case t_not:
+        template = "%s\n"
+                   "  not rax\n";
+        tmp  = compile_expression(a->children[0], scope);
+        ret  = malloc(strlen(template) + strlen(tmp) + 1);
+        sprintf(ret, template, tmp);
         break;
     case t_get:
         template = "%s\n"
@@ -191,29 +234,36 @@ char *compile_jump_if(struct AST *a, struct scope_node *scope) {
     return ret;
 }
 
+char *compile_seta(struct AST *a, struct scope_node *scope) {
+    char *ret, *_expr;
+    struct variable var;
+    const char *set_template, *word, *reg, *index;
+    int i;
+    if(a->id != t_seta) return NULL;
+    set_template = "; set a ;\n"
+                   "%s\n"
+                   "  mov rbx, rax\n"
+                   "%s\n"
+                   "  mov %s [rsp+%d+rbx*%d], %s\n";
+    for(i = 0; i < scope->variable_length; i++)
+        if(!strcmp(scope->variables[i].name, a->children[0]->value))
+            var = scope->variables[i];
+    _expr = compile_expression(a->children[2], scope);
+    reg = reg_from_size(size_from_type(var.subtype));
+    word = word_from_size(size_from_type(var.subtype));
+    index = compile_expression(a->children[1], scope);
+    ret = malloc(strlen(set_template) + strlen(_expr) + strlen(word) + strlen(index) + 41);
+    sprintf(ret, set_template, index, _expr, word, var.offset,
+        size_from_type(var.subtype), reg);
+    return ret;
+}
+
 char *compile_set(struct AST *a, struct scope_node *scope) {
     char *ret, *_expr;
     struct variable var;
     const char *set_template, *word, *reg, *index;
     int i;
     if(a->id != t_set) return NULL;
-    if(a->child_num == 3) {
-        set_template = "%s\n"
-                       "  ; set ;\n"
-                       "  lea rbx, [%s*%d]\n"
-                       "  mov %s [rsp+%d+rbx], %s\n";
-        for(i = 0; i < scope->variable_length; i++)
-            if(!strcmp(scope->variables[i].name, a->children[0]->value))
-                var = scope->variables[i];
-        _expr = compile_expression(a->children[2], scope);
-        reg = reg_from_size(size_from_type(var.subtype));
-        word = word_from_size(size_from_type(var.subtype));
-        index = a->children[1]->value;
-        ret = malloc(strlen(set_template) + strlen(_expr) + strlen(word) + strlen(index) + 41);
-        sprintf(ret, set_template, _expr, index, size_from_type(var.subtype), word, var.offset,
-            reg);
-        return ret;
-    }
     set_template = "%s\n"
                    "  ; set ;\n"
                    "  mov %s [rsp+%d], %s\n";
@@ -248,10 +298,53 @@ char *compile_register(struct AST *a, struct scope_node *scope) {
 }
 
 char *compile_alloc(struct AST *a, struct scope_node *scope) {
-    return IGNORE;
+    if(a->id == t_alloc) return IGNORE;
+    return NULL;
 }
 
 char *compile_statement(struct AST *a, struct scope_node **scope);
+
+char *compile_while(struct AST *a, struct scope_node *scope) {
+    struct scope_node *new_scope;
+    char *ret, *_expr, *tmp;
+    int offset;
+    const char *template;
+
+    static int wl = -1;
+    if(a->id != t_while) return NULL;
+    wl++;
+    template = "  ; while ;\n"
+               "  .w%d:"
+               "%s\n"
+               "  or rax, rax\n"
+               "  jz .w%do\n"
+               "%s\n"
+               "  jmp .w%d\n"
+               "  .w%do:\n";
+    _expr = compile_expression(a->children[0], scope);
+    ret = calloc(1,1);
+    offset = 1;
+    while(1) {
+        if(offset > a->child_num-1) break;
+        if(tmp=compile_statement(a->children[offset], &scope)) {
+            if(tmp == IGNORE) {
+                offset++;
+                continue;
+            }
+            ret = realloc(ret, strlen(ret) + strlen(tmp) + 1);
+            strcpy(ret + strlen(ret), tmp);
+            free(tmp);
+            offset++;
+        }
+    }
+
+    tmp = malloc(strlen(ret) + strlen(template) + strlen(_expr) + 81);
+    sprintf(tmp, template, wl, _expr, wl, ret, wl, wl);
+    ret = realloc(ret, strlen(tmp)+1);
+    strcpy(ret, tmp);
+    free(tmp);
+    return ret;
+}
 
 char *compile_scope(struct AST *a, struct scope_node *scope) {
     struct scope_node *new_scope;
@@ -265,10 +358,11 @@ char *compile_scope(struct AST *a, struct scope_node *scope) {
 
     new_scope = scope_from_ast(a, scope);
     if(new_scope->variable_length > 0) {
-        template = "  sub rsp, %d\n"
+        template = "  ; scope ;\n"
+                   "  sub rsp, %d\n"
                    "%s\n"
                    "  add rsp, %d\n";
-    } else template = "%s\n";
+    } else template = "; scope ;\n%s\n";
 
     while(1) {
         if(offset > a->child_num-1) break;
@@ -300,12 +394,13 @@ char *compile_declaration(struct AST *a, struct scope_node *scope) {
     return IGNORE;
 }
 
-#define STATEMENT_LEN 10
+#define STATEMENT_LEN 12
 char *compile_statement(struct AST *a, struct scope_node **scope) {
     char *statements[STATEMENT_LEN] = { compile_label(a, *scope), compile_exit(a, *scope),
         compile_jump(a, *scope), compile_register(a, *scope), compile_jump_if(a, *scope),
         compile_scope(a, *scope), compile_declaration(a, *scope), compile_set(a, *scope),
-        compile_asm(a, *scope), compile_alloc(a, *scope) };
+        compile_asm(a, *scope), compile_alloc(a, *scope), compile_seta(a, *scope),
+        compile_while(a, *scope) };
     int i;
     for(i=0; i < STATEMENT_LEN; i++) {
         if(statements[i] == IGNORE) return IGNORE;
