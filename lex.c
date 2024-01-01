@@ -45,6 +45,9 @@ static int tok(char *b) {
     ELNCMP(b, "ARGSET")   ret = t_argset;
     ELNCMP(b, "ARGEND")   ret = t_argend;
     ELNCMP(b, "ARGGET")   ret = t_argget;
+    ELNCMP(b, "SUBRT")    ret = t_subrt;
+    ELNCMP(b, "RETURN")   ret = t_return;
+    ELNCMP(b, "RUN")      ret = t_run;
     else {
         for(isnum=1,si=b; *si && isnum; si++) {
             isnum = isdigit(*si) || *si == '-';
@@ -252,6 +255,9 @@ const char *id_type(int id_t) {
     case t_argset:       return "argset";
     case t_argend:       return "argend";
     case t_argget:       return "argget";
+    case t_subrt:        return "subrt";
+    case t_return:       return "return";
+    case t_run:          return "run";
     default:             return "(null)";
     }
 }

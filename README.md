@@ -35,8 +35,8 @@ X = something that i have found a bug to fix
 - [#] add labels
 - [#] add exit
 - [#] add asm directive
-- [~] add subroutines (procedures without arguments passed through)
-- [~] add argument register set (rdi, rsi, rdx, r10, r8, r9)
+- [#] add subroutines (procedures without arguments passed through)
+- [#] add argument register set (rdi, rsi, rdx, r10, r8, r9)
 - [#] add stack allocated arrays
 - [#] add pointer deref
 - [-] add extern subroutines

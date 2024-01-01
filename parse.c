@@ -50,6 +50,35 @@ int variable_function(int action, const char *id, int *info, int ret_type) {
     return -2;
 }
 
+int in_subrt(int set, int type) {
+    static int is_in_subrt = 0;
+    static int ctype = 0;
+    if(set == -1)
+        return type ? ctype : is_in_subrt;
+    is_in_subrt = set;
+    type = type;
+    return set;
+}
+
+int add_subrt(const char *name, int type, int get) {
+    static const char **subrts = NULL;
+    static int *types = NULL;
+    static int len = 0;
+    int i;
+    if(subrts == NULL) subrts = malloc(1);
+    if(types == NULL)  types = malloc(1);
+    if(get) {
+        for(i = 0; i < len; i++)
+            if(!strcmp(name, subrts[i])) return type ? types[i] : 1;
+        return 0;
+    }
+    subrts = realloc(subrts, (len+1)*sizeof(const char*));
+    types  = realloc(types,  (len+1)*sizeof(int));
+    subrts[len] = name;
+    types[len]  = type;
+    len++;
+}
+
 static struct AST *parse_expr(struct token **lexed, int offset, int lsz, int *outoff, int *type);
 
 static struct AST *parse_int(struct token **lexed, int offset, int lsz, int *outoff, int *type) {
@@ -416,7 +445,27 @@ static struct AST *parse_argget(struct token **lexed, int offset, int lsz, int *
     return ret;
 }
 
-#define EXPR_LEN 15
+static struct AST *parse_run(struct token **lexed, int offset, int lsz, int *outoff, int *type) {
+    struct AST *ret, *_iden;
+    int inoutoff;
+    BOUNDS_ASSERT(offset);
+    if(lexed[offset]->id != t_run) return NULL;
+    inoutoff=1;
+    _iden = parse_iden(lexed, offset+inoutoff, lsz, &inoutoff, NULL);
+    ASSERT(_iden != NULL, "expected subrt to run\n", offset+inoutoff,
+        lexed[offset+inoutoff]->line, lexed[offset+inoutoff]->file);
+    ASSERT(add_subrt(_iden->value, 0, 1), "expected run iden to be a subrt\n", offset+inoutoff,
+        lexed[offset+inoutoff]->line, lexed[offset+inoutoff]->file);
+    ret = AST_NEW();
+    ret->id = t_run;
+    ret->value = NULL;
+    AST_CHILD_ADD(ret, _iden);
+    if(type != NULL) *type = add_subrt(_iden->value, 1, 1);
+    *outoff += inoutoff;
+    return ret;
+}
+
+#define EXPR_LEN 16
 static struct AST *parse_expr(struct token **lexed, int offset, int lsz, int *outoff, int *type) {
     int i;
     struct AST *exprs[EXPR_LEN] = { parse_int(lexed, offset, lsz, outoff, type),
@@ -434,6 +483,7 @@ static struct AST *parse_expr(struct token **lexed, int offset, int lsz, int *ou
         parse_ref(lexed, offset, lsz, outoff, type),
         parse_deref(lexed, offset, lsz, outoff, type),
         parse_argget(lexed, offset, lsz, outoff, type),
+        parse_run(lexed, offset, lsz, outoff, type),
     };
     for(i = 0; i < EXPR_LEN; i++)
         if(exprs[i] != NULL) return exprs[i];
@@ -680,6 +730,62 @@ static struct AST *parse_scope(struct token **lexed, int offset, int lsz, int *o
     return ret;
 }
 
+static struct AST *parse_subrt(struct token **lexed, int offset, int lsz, int *outoff) {
+    struct AST *ret, *_type, *_iden, *_scope;
+    int inoutoff, prev, prevt;
+    BOUNDS_ASSERT(offset);
+    if(lexed[offset]->id != t_subrt) return NULL;
+    inoutoff = 1;
+
+    prev = in_subrt(-1, 0);
+    prevt = in_subrt(-1, 1);
+
+    _type = parse_type(lexed, offset+inoutoff, lsz, &inoutoff);
+    ASSERT(_type != NULL, "expected type of subroutine\n", offset+inoutoff,
+        lexed[inoutoff+offset]->line, lexed[inoutoff+offset]->file);
+    _iden = parse_iden(lexed, offset+inoutoff, lsz, &inoutoff, NULL);
+    ASSERT(_iden != NULL, "expected name of subroutine\n", offset+inoutoff,
+        lexed[inoutoff+offset]->line, lexed[inoutoff+offset]->file);
+    add_subrt(_iden->value, _type->id, 0);
+    in_subrt(1, _type->id);
+    _scope = parse_scope(lexed, offset+inoutoff, lsz, &inoutoff);
+    ASSERT(_scope != NULL, "expected subroutine body scope\n", offset+inoutoff,
+        lexed[inoutoff+offset]->line, lexed[inoutoff+offset]->file);
+    in_subrt(prev, prevt);
+    ret = AST_NEW();
+    ret->id = t_subrt;
+    ret->value = NULL;
+    AST_CHILD_ADD(ret, _type);
+    AST_CHILD_ADD(ret, _iden);
+    AST_CHILD_ADD(ret, _scope);
+    *outoff += inoutoff;
+    return ret;
+}
+
+static struct AST *parse_return(struct token **lexed, int offset, int lsz, int *outoff) {
+    struct AST *ret, *_expr;
+    int inoutoff, expected_type, t;
+    BOUNDS_ASSERT(offset);
+    if(lexed[offset]-> id != t_return) return NULL;
+    inoutoff=1;
+
+    ASSERT(in_subrt(-1, 0), "return must be used in subrt\n", offset+inoutoff,
+        lexed[offset+inoutoff]->line, lexed[offset+inoutoff]->file);
+
+    expected_type = in_subrt(-1, 1);
+    _expr = parse_expr(lexed, offset+inoutoff, lsz, &inoutoff, &t);
+    ASSERT(_expr != NULL, "expected expression after return\n", offset+inoutoff,
+        lexed[inoutoff+offset]->line, lexed[inoutoff+offset]->file);
+    ASSERT(t == expected_type || (int_type(t) && int_type(expected_type)), "expected return type to be the same as the subrts\n",
+        offset+inoutoff, lexed[inoutoff+offset]->line, lexed[inoutoff+offset]->file);
+    ret = AST_NEW();
+    ret->id = t_return;
+    ret->value = NULL;
+    AST_CHILD_ADD(ret, _expr);
+    *outoff+=inoutoff;
+    return ret;
+}
+
 static struct AST *parse_seta(struct token **lexed, int offset, int lsz, int *outoff) {
     struct AST *ret, *_iden, *_expr, *_expr2;
     int inoutoff, t1, t2;
@@ -732,7 +838,9 @@ static struct AST *parse_set(struct token **lexed, int offset, int lsz, int *out
     return ret;
 }
 
-#define STATEMENT_LEN 12
+
+
+#define STATEMENT_LEN 15
 static struct AST *parse_statement(struct token **lexed, int offset, int lsz,
         int *outoff, int isroot) {
     struct AST *statements[STATEMENT_LEN] = { parse_exit(lexed, offset, lsz, outoff),
@@ -743,7 +851,8 @@ static struct AST *parse_statement(struct token **lexed, int offset, int lsz,
         parse_set(lexed, offset, lsz, outoff), parse_asm(lexed, offset, lsz, outoff),
         parse_alloc(lexed, offset, lsz, outoff), parse_seta(lexed, offset, lsz, outoff),
         parse_while(lexed, offset, lsz, outoff), parse_argset(lexed, offset, lsz, outoff),
-         };
+        parse_subrt(lexed, offset, lsz, outoff), parse_return(lexed, offset, lsz, outoff),
+        parse_run(lexed, offset, lsz, outoff, NULL), };
     int i;
     for(i=0; i < STATEMENT_LEN; i++)
         if(statements[i] != NULL) {

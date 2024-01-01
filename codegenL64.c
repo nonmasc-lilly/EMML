@@ -181,6 +181,11 @@ char *compile_expression(struct AST *a, struct scope_node *scope) {
         ret = malloc(strlen(template) + 5);
         sprintf(ret, template, argreg[atoi(a->children[0]->value)]);
         break;
+    case t_run:
+        template = "call %s\n";
+        ret = malloc(strlen(template) + strlen(a->children[0]->value) + 1);
+        sprintf(ret, template, a->children[0]->value);
+        return ret;
     default: ret = NULL;
     }
     return ret;
@@ -436,18 +441,50 @@ char *compile_scope(struct AST *a, struct scope_node *scope) {
     return ret;
 }
 
+char *compile_subrt(struct AST *a, struct scope_node *scope) {
+    char *ret, *_scope;
+    const char *template;
+    if(a->id != t_subrt) return NULL;
+    template = "%s:\n"
+               "%s\n"
+               "  mov rax, 0\n"
+               "  ret\n";
+    _scope = compile_scope(a->children[2], scope);
+    ret = calloc(1,strlen(a->children[1]->value) + strlen(_scope) + strlen(template)
+        + 1);
+    sprintf(ret, template, a->children[1]->value, _scope);
+    free(_scope);
+    return ret;
+}
+
+char *compile_return(struct AST* a, struct scope_node *scope) {
+    char *ret, *_expr;
+    const char *template;
+    if(a->id != t_return) return NULL;
+    template = "%s\n"
+               "  ret";
+
+    _expr = compile_expression(a->children[0], scope);
+    ret = calloc(1,strlen(template)+strlen(_expr)+1);
+    sprintf(ret, template, _expr);
+    free(_expr);
+    return ret;
+    
+}
+
 char *compile_declaration(struct AST *a, struct scope_node *scope) {
     if(a->id != t_declare) return NULL;
     return IGNORE;
 }
 
-#define STATEMENT_LEN 13
+#define STATEMENT_LEN 15
 char *compile_statement(struct AST *a, struct scope_node **scope) {
     char *statements[STATEMENT_LEN] = { compile_label(a, *scope), compile_exit(a, *scope),
         compile_jump(a, *scope), compile_register(a, *scope), compile_jump_if(a, *scope),
         compile_scope(a, *scope), compile_declaration(a, *scope), compile_set(a, *scope),
         compile_asm(a, *scope), compile_alloc(a, *scope), compile_seta(a, *scope),
-        compile_while(a, *scope), compile_argset(a, *scope) };
+        compile_while(a, *scope), compile_argset(a, *scope), compile_subrt(a, *scope),
+        compile_return(a, *scope), };
     int i;
     for(i=0; i < STATEMENT_LEN; i++) {
         if(statements[i] == IGNORE) return IGNORE;

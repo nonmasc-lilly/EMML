@@ -41,7 +41,8 @@ typedef enum token_types {
     t_and,          t_xor,      t_not,
     t_while,        t_do,       t_stop,
     t_ref,          t_deref,    t_argset,
-    t_argend,       t_argget,
+    t_argend,       t_argget,   t_subrt,
+    t_return,       t_run,
 } TOKEN_TYPE;
 
 struct token {
@@ -98,6 +99,7 @@ struct AST *parse(struct token **processed, int lsz);
     } while(0)
 #define SCOPE_DEL(scope) scope_del(scope)
 #define VARIABLE_SIZE sizeof(struct variable)
+#define SUBRT_SIZE sizeof(struct subrt)
 
 int literal_types(int literal);
 const char *word_from_size(int size);
@@ -112,12 +114,19 @@ struct variable {
     const char *file;
 };
 
+struct subrt {
+    int type;
+    const char *name;
+};
+
 struct scope_node {
     struct scope_node *parent;
     int variable_length;
+    int subrt_length;
     int stack_size;
     struct variable *variables;
     struct scope_node *child;
+    struct subrt *subrts;
 };
 
 

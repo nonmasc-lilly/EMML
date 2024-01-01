@@ -45,14 +45,19 @@ struct scope_node *scope_new() {
     struct scope_node *ret;
     ret = malloc(SCOPE_SIZE);
     ret->variables = malloc(1);
+    ret->subrts    = malloc(1);
     ret->variable_length = 0;
-    ret->stack_size = 0;
+    ret->subrt_length    = 0;
+    ret->stack_size      = 0;
+    return ret;
 }
 
 void scope_del(struct scope_node *scope) {
     if(scope->child != NULL)
         scope_del(scope->child);
     scope->parent->child = NULL;
+    free(scope->variables);
+    free(scope->subrts);
 }
 
 struct scope_node *scope_from_ast(struct AST *a, struct scope_node *parent) {
@@ -82,6 +87,11 @@ struct scope_node *scope_from_ast(struct AST *a, struct scope_node *parent) {
             node->variables[sz].name = a->children[i]->children[1]->value;
             node->variables[sz].type = t_alloc;
             node->variables[sz].subtype = a->children[i]->children[2]->id;
+            break;
+        case t_subrt:
+            node->subrts = realloc(node->subrts, (node->subrt_length+1)*SUBRT_SIZE);
+            node->subrts[node->subrt_length].name = a->children[i]->children[1]->value;
+            node->subrts[node->subrt_length].type = a->children[i]->children[0]->id;
             break;
         }
     }
